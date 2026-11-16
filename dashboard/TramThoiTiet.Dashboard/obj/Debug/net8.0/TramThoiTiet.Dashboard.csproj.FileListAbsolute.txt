@@ -26,3 +26,4 @@ K:\IoT\DoAn\DoAnMon\dashboard\TramThoiTiet.Dashboard\obj\Debug\net8.0\refint\Tra
 K:\IoT\DoAn\DoAnMon\dashboard\TramThoiTiet.Dashboard\obj\Debug\net8.0\TramThoiTiet.Dashboard.pdb
 K:\IoT\DoAn\DoAnMon\dashboard\TramThoiTiet.Dashboard\obj\Debug\net8.0\TramThoiTiet.Dashboard.genruntimeconfig.cache
 K:\IoT\DoAn\DoAnMon\dashboard\TramThoiTiet.Dashboard\obj\Debug\net8.0\ref\TramThoiTiet.Dashboard.dll
+K:\IoT\DoAn\DoAnMon\dashboard\TramThoiTiet.Dashboard\obj\Debug\net8.0\TramThoiTiet.Dashboard.sourcelink.json

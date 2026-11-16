@@ -16,10 +16,10 @@ void setup() {
   digitalWrite(PIN_LED_MQTT, LOW);
 
   Serial.println(F("Tram thoi tiet mini - khoi dong"));
-  if (!sensors.begin()) {
-    Serial.println(F("LOI: Khong tim thay BME280 tai dia chi 0x76"));
-    // Keep running so the dashboard can see sensor_ok=false telemetry.
-  }
+  Serial.println(F("Num xoay: GPIO34 = gio (m/s), GPIO35 = huong gio (do),"));
+  Serial.println(F("          GPIO32 = mua (mm/h)"));
+  Serial.println(F("DHT22 (GPIO5) = nhiet do + do am khong khi"));
+  sensors.begin();
 
   network.begin();
 }

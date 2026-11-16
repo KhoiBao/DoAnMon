@@ -2,10 +2,8 @@
 #include <Arduino.h>
 
 // ======================= Hardware pins =======================
-// BME280 on I2C (default address 0x76 when SDO -> GND)
-#define PIN_I2C_SDA        21
-#define PIN_I2C_SCL        22
-#define BME280_I2C_ADDR    0x76
+// DHT22 for air temperature + humidity (single-wire digital)
+#define PIN_DHT_DATA       5
 
 // Analog inputs (potentiometers on Wokwi, real sensors later)
 #define PIN_ADC_WIND_SPEED 34   // 0..30 m/s

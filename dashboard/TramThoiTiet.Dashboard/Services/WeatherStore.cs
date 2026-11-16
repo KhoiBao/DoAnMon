@@ -7,7 +7,6 @@ public record WeatherSample(
     string Device,
     double NhietDo,
     double DoAm,
-    double ApSuat,
     double TocDoGio,
     int HuongGio,
     double Mua,

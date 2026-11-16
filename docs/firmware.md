@@ -7,7 +7,7 @@
 | `include/Config.h` | Pin numbers, scaling limits, MQTT settings |
 | `include/secrets.example.h` | Template for `secrets.h` (tokens) |
 | `src/main.cpp` | Setup and 5-second loop |
-| `src/Sensors.cpp/.h` | BME280 reads and ADC averaging |
+| `src/Sensors.cpp/.h` | DHT22 read and ADC averaging |
 | `src/Telemetry.cpp/.h` | JSON payload builder |
 | `src/NetworkService.cpp/.h` | WiFi and MQTT with reconnect backoff |
 
@@ -15,9 +15,8 @@
 
 | Device | Pin | ESP32 pin |
 |--------|-----|-----------|
-| BME280 SDA | SDA | GPIO 21 |
-| BME280 SCL | SCL | GPIO 22 |
-| BME280 SDO | — | GND (sets I2C address 0x76) |
+| DHT22 | SD (data) | GPIO 5 |
+| DHT22 | VCC / GND | 3V3 / GND |
 | Potentiometer 1 (wind speed) | SIG | GPIO 34 |
 | Potentiometer 2 (wind direction) | SIG | GPIO 35 |
 | Potentiometer 3 (rain) | SIG | GPIO 32 |
@@ -50,7 +49,6 @@ ThingsBoard. The Access Token is the MQTT username.
   "device": "tram-mini-01",
   "nhiet_do": 25.0,
   "do_am": 60.0,
-  "ap_suat": 1013.25,
   "toc_do_gio": 12.5,
   "huong_gio": 180,
   "mua": 0,
@@ -59,8 +57,8 @@ ThingsBoard. The Access Token is the MQTT username.
 }
 ```
 
-Pressure is in hPa. Wind speed is in m/s. `ts` is the millis() counter,
-because the simulator has no real-time clock.
+Wind speed is in m/s. `ts` is the millis() counter, because the
+simulator has no real-time clock.
 
 ## Reconnect logic
 

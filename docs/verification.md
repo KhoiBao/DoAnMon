@@ -3,6 +3,12 @@
 ASD-STE100 note: this document records executed tests only. The result
 columns stay empty until a test runs on this machine.
 
+> 2026-11-16: the custom BME280 chip was retired and its files removed
+> (`bme280.chip.c`, `bme280.chip.json`, `tools/verify_bme280_model.py`).
+> The simulation now uses the built-in DHT22 part plus potentiometers;
+> pressure also comes from a potentiometer (GPIO 33). Section 1 stays as
+> the historical record of the executed chip-model test.
+
 ## Test environment
 
 | Item | Value |
@@ -42,11 +48,7 @@ Command: `pio run`
 
 ## 3. Chip WASM compile
 
-Command: `wokwi-cli chip compile bme280.chip.c -o bme280.chip.wasm`
-
-| Step | Result |
-|------|--------|
-| Compile | (pending — run before the report) |
+No longer applies. The built-in Wokwi parts need no chip binary.
 
 ## 4. Simulator end-to-end
 
@@ -60,24 +62,45 @@ Procedure:
 
 | Check | Expected | Result |
 |-------|----------|--------|
-| Chip ID detection | no "LOI: Khong tim thay BME280" | (pending) |
-| Default values | 25.0 / 60.0 / 1013.25 | (pending) |
-| Slider tracking | published value follows sliders | (pending) |
+| Sensor start | no "LOI" line, boot banner lists the knob mapping | (pending) |
+| Slider tracking | published value follows sliders and the DHT22 panel | (pending) |
 | MQTT LED | on when connected | (pending) |
 
-## 5. Dashboard end-to-end
+## 5. Dashboard end-to-end (executed 2026-11-16)
 
-Procedure:
-
-1. Run `dotnet run --project dashboard/TramThoiTiet.Dashboard`.
-2. Open the page. The MQTT badge must turn green within 10 s.
-3. Watch the comparison table fill with local and Open-Meteo values.
-4. Press "Vị trí hiện tại" and confirm the coordinates change.
+Method: `dotnet run --no-build` on this machine; test telemetry published
+to the demo topic with a Python MQTT client; page inspected in a browser.
 
 | Check | Expected | Result |
 |-------|----------|--------|
-| MQTT badge | green after connect | (pending) |
-| Telemetry table | values from the simulator | (pending) |
-| Open-Meteo fetch | values near the chosen location | (pending) |
-| History chart | one point per 5 s | (pending) |
-| Geolocation | coordinates set from browser | (pending) |
+| Page routing | `http://localhost:5000/` returns the page, not 404 | PASS |
+| MQTT badge | green after connect | PASS |
+| Telemetry panel | new published values appear within 1 s | PASS |
+| Bad data | missing or non-numeric sensor values show "–", badge red | PASS |
+| Comparison table | delta column shows signed difference | PASS |
+| Open-Meteo fetch | values for the resolved location | PASS |
+| Today forecast | min/max, weather state, rain | PASS |
+| 5-day forecast | four more days with state names | PASS |
+| Reverse geocoding | street-level place name shown | PASS (default location) |
+| Geolocation allowed | coordinates set from browser | (pending — needs a user browser) |
+| History chart | one point per 5 s | PASS (canvas renders, console clean) |
+
+## 6. Security tests (executed 2026-11-16)
+
+Method: payloads published to the demo MQTT topic from a separate
+client; dashboard behavior observed in the browser and in server logs.
+
+| ID | Scenario | Expected | Result |
+|----|----------|----------|--------|
+| SEC-1 | Third party publishes fake telemetry on the public topic | System accepts or rejects with a warning | FAIL: dashboard accepted a spoofed device ("tram-gia-mao") with out-of-range values (-55 °C, 999 %) without any warning |
+| SEC-2 | Malformed JSON payload | Ignore, log, keep running | PASS: logged "Bad telemetry payload", page kept running |
+| SEC-3 | XSS string in the device field | Render as text, no script execution | PASS: Blazor encoded the string, `<script>` shown as text |
+| SEC-4 | Hard-coded tokens | No tokens in source | PASS: `secrets.example.h` has placeholders only, `secrets.h` never committed |
+| SEC-5 | Out-of-range values (999, 400°) | Clamp or flag invalid data | FAIL: dashboard shows the raw values; firmware clamps only its own readings |
+| SEC-6 | Dashboard access control | Unknown | Not implemented: the dashboard has no login; anyone on the host can open it |
+| SEC-7 | Transport encryption | TLS | Not implemented: MQTT runs plain on port 1883; dashboard is HTTP on loopback |
+
+FAIL and "not implemented" rows are documented limits for the report,
+not silent omissions. Remediation candidates: value range checks in the
+receiver, a private broker with credentials + TLS, and an authenticated
+reverse proxy if the dashboard ever leaves localhost.

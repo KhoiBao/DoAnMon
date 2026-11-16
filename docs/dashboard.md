@@ -36,18 +36,27 @@ The dashboard project is at `dashboard/TramThoiTiet.Dashboard/`.
 The page shows:
 
 * Connection badges for MQTT and sensor health.
+* The user's location as a place name (browser geolocation plus reverse
+  geocoding via OpenStreetMap Nominatim). If the user denies the location
+  request, the configured default location is used.
 * A comparison table: local value, API value and the difference for
-  temperature, humidity, pressure, wind speed and wind direction.
+  temperature, humidity, wind speed and wind direction.
 * Wind direction as compass labels (B, ĐB, Đ, ĐN, N, TN, T, TB).
 * Rain (local only — the API column shows a dash).
 * A history chart with temperature, humidity, wind and rain.
+* Today's forecast and a 5-day forecast (min/max temperature, weather
+  state, rain amount and probability) from Open-Meteo.
+
+Weather states come from the WMO weather code, translated to Vietnamese
+("Trời quang", "Mưa phùn nhẹ", "Mưa rào vừa", "Dông"...).
 
 ## Location
 
-The default location is TP. HCM (10.82, 106.63). Users can type
-coordinates or press "Vị trí hiện tại". The browser geolocation API
-then sets the position. After a location change, press "So sánh" to
-fetch the API value again.
+On page load the dashboard asks the browser for the current position.
+The coordinates go to Open-Meteo and to the reverse geocoder, which
+returns a place name at street level (for example "Đường Tây Thạnh,
+Khu phố 9, Phường Tây Thạnh, Thành phố Hồ Chí Minh"). The button
+"Lấy vị trí hiện tại" repeats the request.
 
 ## Units
 
@@ -55,9 +64,10 @@ fetch the API value again.
 |-------|-------|------------|------------------|
 | Temperature | °C | °C | as-is |
 | Humidity | % | % | as-is |
-| Pressure | hPa | hPa (surface_pressure) | as-is |
 | Wind speed | m/s | km/h | divided by 3.6 |
 | Wind direction | degrees | degrees | as-is |
+
+Pressure is not part of the system.
 
 ## Run
 

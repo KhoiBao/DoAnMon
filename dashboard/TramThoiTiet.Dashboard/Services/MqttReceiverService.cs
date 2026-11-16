@@ -46,7 +46,6 @@ public sealed class MqttReceiverService : BackgroundService
                     Device: root.TryGetProperty("device", out var d) ? d.GetString() ?? "" : "",
                     NhietDo: root.TryGetProperty("nhiet_do", out var t) ? t.GetDouble() : double.NaN,
                     DoAm: root.TryGetProperty("do_am", out var h) ? h.GetDouble() : double.NaN,
-                    ApSuat: root.TryGetProperty("ap_suat", out var p) ? p.GetDouble() : double.NaN,
                     TocDoGio: root.TryGetProperty("toc_do_gio", out var ws) ? ws.GetDouble() : double.NaN,
                     HuongGio: root.TryGetProperty("huong_gio", out var wd) ? wd.GetInt32() : 0,
                     Mua: root.TryGetProperty("mua", out var r) ? r.GetDouble() : double.NaN,

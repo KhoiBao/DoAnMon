@@ -4,7 +4,7 @@
   "editor": "wokwi",
   "parts": [
     { "type": "board-esp32-devkit-c-v4", "id": "esp", "top": -173.4, "left": 8.6, "attrs": {} },
-    { "type": "chip-bme280", "id": "chip1", "top": -361.6, "left": 173.06, "attrs": {} },
+    { "type": "wokwi-dht22", "id": "dht1", "top": -361.6, "left": 173.06, "attrs": {} },
     { "type": "wokwi-potentiometer", "id": "pot1", "top": -180.4, "left": 316.8, "attrs": {} },
     { "type": "wokwi-potentiometer", "id": "pot2", "top": -64.4, "left": 316.8, "attrs": {} },
     { "type": "wokwi-potentiometer", "id": "pot3", "top": 51.6, "left": 316.8, "attrs": {} },
@@ -16,10 +16,9 @@
   "connections": [
     [ "esp:TX", "$serialMonitor:RX", "", [] ],
     [ "esp:RX", "$serialMonitor:TX", "", [] ],
-    [ "chip1:VCC", "esp:3V3", "red", [ "v0" ] ],
-    [ "chip1:GND", "esp:GND.2", "black", [ "v0" ] ],
-    [ "chip1:SCL", "esp:22", "orange", [ "v0" ] ],
-    [ "chip1:SDA", "esp:21", "green", [ "v0" ] ],
+    [ "dht1:VCC", "esp:3V3", "red", [ "v0" ] ],
+    [ "dht1:SD", "esp:5", "green", [ "v0" ] ],
+    [ "dht1:GND", "esp:GND.2", "black", [ "v0" ] ],
     [ "pot1:VCC", "esp:3V3", "red", [ "v0" ] ],
     [ "pot1:GND", "esp:GND.1", "black", [ "v0" ] ],
     [ "pot1:SIG", "esp:34", "yellow", [ "v0" ] ],
