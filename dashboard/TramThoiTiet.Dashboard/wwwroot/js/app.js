@@ -10,7 +10,7 @@ window.getLocation = () => new Promise((resolve, reject) => {
 });
 
 let _historyChart;
-window.updateHistoryChart = (canvasId, labels, temp, hum, wind, rain) => {
+window.updateHistoryChart = (canvasId, labels, temp, hum, wind, rain, light) => {
     const ctx = document.getElementById(canvasId);
     if (!ctx) return;
     const data = {
@@ -19,7 +19,8 @@ window.updateHistoryChart = (canvasId, labels, temp, hum, wind, rain) => {
             { label: 'Nhiệt độ (°C)', data: temp, borderColor: '#d9534f', backgroundColor: '#d9534f33', tension: 0.25, pointRadius: 0 },
             { label: 'Độ ẩm (%)', data: hum, borderColor: '#0275d8', backgroundColor: '#0275d833', tension: 0.25, pointRadius: 0 },
             { label: 'Gió (m/s)', data: wind, borderColor: '#5cb85c', backgroundColor: '#5cb85c33', tension: 0.25, pointRadius: 0, yAxisID: 'y2' },
-            { label: 'Mưa (mm/h)', data: rain, borderColor: '#292b2c', backgroundColor: '#292b2c33', tension: 0.25, pointRadius: 0, yAxisID: 'y2' }
+            { label: 'Mưa (mm/h)', data: rain, borderColor: '#292b2c', backgroundColor: '#292b2c33', tension: 0.25, pointRadius: 0, yAxisID: 'y2' },
+            { label: 'Ánh sáng (lx)', data: light, borderColor: '#f0ad4e', backgroundColor: '#f0ad4e33', tension: 0.25, pointRadius: 0, yAxisID: 'y3' }
         ]
     };
     if (_historyChart) {
@@ -34,7 +35,8 @@ window.updateHistoryChart = (canvasId, labels, temp, hum, wind, rain) => {
             animation: false,
             scales: {
                 y: { position: 'left' },
-                y2: { position: 'right', grid: { drawOnChartArea: false } }
+                y2: { position: 'right', grid: { drawOnChartArea: false } },
+                y3: { position: 'right', grid: { drawOnChartArea: false } }
             }
         }
     });

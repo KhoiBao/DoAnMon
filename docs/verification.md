@@ -104,3 +104,49 @@ FAIL and "not implemented" rows are documented limits for the report,
 not silent omissions. Remediation candidates: value range checks in the
 receiver, a private broker with credentials + TLS, and an authenticated
 reverse proxy if the dashboard ever leaves localhost.
+
+## 7. Storage, history chart and advice (executed 2026-11-16)
+
+Method: unit tests with xUnit against SQLite in-memory; end-to-end test
+with `dotnet run`, test telemetry published with a Python MQTT client
+(payload keys `t`, `h`, `ws`, `wd`, `r`, `lux`, `ok`, `ts`), page
+inspected in a browser, database probed with Python `sqlite3`.
+
+| Check | Expected | Result |
+|-------|----------|--------|
+| Unit tests, advice rules | 8/8 pass (band boundaries, weights, missing data) | PASS |
+| Unit tests, history query | 5/5 pass (raw rows, 1-minute and 10-minute bucket means, NULL skip, direction mean) | PASS |
+| DB creation | `tramthoitiet.db` created at startup | PASS |
+| DB write per message | INSERT logged for each valid sample | PASS |
+| Light stored | `lux` 420/380/450 read back from `WeatherRecords.AnhSang` | PASS |
+| Missing values | rows without the keys stored with NULL, page shows "–" | PASS |
+| Advice badge | 29.1 °C + 450 lx → "Thuận lợi", comment "dễ chịu · nắng vừa" | PASS |
+| Light tile and table row | tile and table show the latest lux | PASS |
+| Range "Trực tiếp" | live ring data, labels `HH:mm:ss` | PASS |
+| Range "1 giờ" | raw rows from SQLite, NULL rows render as line gaps | PASS |
+| Range "24 giờ" | one bucket per minute, mean of valid rows only | PASS |
+| Range "7 ngày" | one bucket per 10 minutes, mean of valid rows only | PASS |
+| NaN to interop | NaN mapped to null before the JS call (Blazor interop cannot serialize NaN) | PASS |
+| Console | no browser console errors during all range switches | PASS |
+
+Final probe: 12 rows in `WeatherRecords`, 9 with a light value, 3 with
+NULL (third-party payloads on the public demo topic without the
+expected keys).
+
+## 8. AI commentary (executed 2026-11-16)
+
+Method: unit tests with xUnit (prompt builder, response parser, cache
+and throttling against a fake HTTP handler); end-to-end test in the
+browser with the running dashboard. The real Gemini call needs the
+user's API key, so the executed evidence covers everything except a
+successful real API answer.
+
+| Check | Expected | Result |
+|-------|----------|--------|
+| Unit tests, AI service | 9/9 pass (prompt contents, parser, no-key, NaN, error throttle, cache hit, condition change) | PASS |
+| Panel renders | "Nhận xét AI" card with the "Nhận xét" button below the advice strip | PASS |
+| Click without key | "Chưa cấu hình API key" shown, no HTTP call | PASS |
+| Click with invalid key | "Không tạo được nhận xét, thử lại sau." after the real API rejects it | PASS |
+| Browser console | no errors during both clicks | PASS |
+| Weighted advice untouched | badge and comment above the card unchanged | PASS |
+| Real API answer with a valid key | AI sentence replaces the failed state | (pending — needs the user's API key) |

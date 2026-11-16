@@ -10,6 +10,7 @@ public record WeatherSample(
     double TocDoGio,
     int HuongGio,
     double Mua,
+    double AnhSang,
     bool SensorOk);
 
 public sealed class WeatherStore

@@ -7,13 +7,14 @@ struct WeatherReading {
   float windSpeed;     // m/s, from ADC
   int   windDir;       // degrees 0..359, from ADC
   float rain;          // mm/h, from ADC
-  bool  sensorOk;      // true when DHT22 read succeeded
+  float light;         // lux 0..LIGHT_MAX_LUX, approximated from LDR module
+  bool  sensorOk;      // true when DHT22 read succeeded and ADC channels are stable
 };
 
 class Sensors {
 public:
   bool begin();                    // prepares the DHT22
-  WeatherReading read();           // one averaged sample set
+  WeatherReading read();           // one trimmed-mean sample set
 private:
-  uint32_t readAdcAverage(uint8_t pin) const;
+  uint32_t readAdcTrimMean(uint8_t pin, bool& stable) const;
 };

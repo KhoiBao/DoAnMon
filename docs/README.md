@@ -5,17 +5,26 @@ Wokwi. It sends telemetry over MQTT. A .NET dashboard shows the data and
 compares it with the Open-Meteo weather API.
 
 Air temperature and humidity come from a DHT22. Three potentiometers
-stand in for wind speed, wind direction and rain. All are built-in
-Wokwi parts, so no custom chip is needed.
+stand in for wind speed, wind direction and rain. An LDR module on
+GPIO 33 gives the light intensity. All are built-in Wokwi parts, so no
+custom chip is needed.
+
+The dashboard stores every sample in SQLite and shows history charts
+for four time ranges, plus a weighted advice line based on temperature
+and light. An optional AI comment (Gemini API, generated only when the
+user clicks "Nhận xét") phrases the same readings in natural language;
+without an API key the dashboard works as before.
 
 ## Contents
 
 | Document | What it covers |
 |----------|----------------|
+| [tong-hop-du-an.md](tong-hop-du-an.md) | All-in-one project synthesis for slides and the Word report (Vietnamese) |
 | [firmware.md](firmware.md) | ESP32 firmware: sensors, scaling, MQTT payload |
-| [dashboard.md](dashboard.md) | The Blazor Server dashboard |
+| [dashboard.md](dashboard.md) | The Blazor Server dashboard: storage, history, advice |
 | [verification.md](verification.md) | Test procedures and results |
 | [security.md](security.md) | Token and secret handling |
+| [report-doan.md](report-doan.md) | Paste-ready Vietnamese section for the course report |
 
 ## System overview
 
@@ -23,17 +32,22 @@ Wokwi parts, so no custom chip is needed.
 [Wokwi simulator]
   DHT22 (temp + humidity)  --GPIO-->  ESP32 firmware
   3 potentiometers         --ADC-->     |
-  (wind, wind dir, rain)                |
-                                  MQTT JSON every 5 s
+  LDR (light)              --ADC-->     |
+                                  MQTT JSON per cycle
                                       v
                      broker.hivemq.com (public demo broker)
                                       v
                      [Blazor dashboard]  <-->  Open-Meteo API
+                                |            (reference weather)
+                          SQLite (tramthoitiet.db)
 ```
 
 The firmware reads air temperature and humidity from the DHT22. Three
-potentiometers stand in for wind speed, wind direction and rain. The
-firmware publishes one JSON message every 5 seconds. The dashboard subscribes to the MQTT topic. It also asks the
+potentiometers stand in for wind speed, wind direction and rain, and an
+LDR module gives the light intensity. The firmware publishes one JSON
+message per cycle (5 s in demo mode, 60 s in battery mode). The
+dashboard subscribes to the MQTT topic, stores each sample in SQLite,
+and shows live and historical charts. It also asks the
 Open-Meteo API for current weather at a chosen location. The page shows
 both values and the difference.
 

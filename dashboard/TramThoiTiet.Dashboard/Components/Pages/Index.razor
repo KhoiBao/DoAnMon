@@ -5,6 +5,8 @@
 @using TramThoiTiet.Dashboard.Services
 @inject WeatherStore Store
 @inject OpenMeteoService OpenMeteo
+@inject HistoryService History
+@inject AiAdviceService Ai
 @inject IJSRuntime JS
 @implements IDisposable
 
@@ -65,6 +67,7 @@
                         <div class="col-6 col-md-4"><div class="metric-tile"><div class="metric-value">@Fmt(latest.TocDoGio)</div><div class="metric-label">Gió (m/s)</div></div></div>
                         <div class="col-6 col-md-4"><div class="metric-tile"><div class="metric-value">@Compass(latest.HuongGio) @latest.HuongGio°</div><div class="metric-label">Hướng gió</div></div></div>
                         <div class="col-6 col-md-4"><div class="metric-tile"><div class="metric-value">@Fmt(latest.Mua)</div><div class="metric-label">Mưa (mm/h)</div></div></div>
+                        <div class="col-6 col-md-4"><div class="metric-tile"><div class="metric-value">@Fmt(latest.AnhSang)</div><div class="metric-label">Ánh sáng (lx)</div></div></div>
                         <div class="col-6 col-md-4"><div class="metric-tile"><div class="metric-value">@(latest.ReceivedAt.ToString("HH:mm:ss"))</div><div class="metric-label">Cập nhật</div></div></div>
                     </div>
                 </div>
@@ -109,6 +112,46 @@
         </div>
     </div>
 
+    @if (AdviceFor(latest) is { } advice && advice.Score is not null)
+    {
+        <div class="d-flex gap-2 align-items-center mb-3">
+            <span class="badge @(advice.Level == "Thuận lợi" ? "bg-success" : advice.Level == "Bình thường" ? "bg-warning text-dark" : "bg-danger")">@advice.Level</span>
+            <span>@advice.Comment</span>
+        </div>
+    }
+
+    <div class="card mb-3">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="fw-semibold">Nhận xét AI</span>
+                <button class="btn btn-sm btn-primary" @onclick="GenerateAiAdviceAsync" disabled="@_aiLoading">Nhận xét</button>
+            </div>
+            @if (_aiLoading)
+            {
+                <div class="d-flex align-items-center gap-2" aria-live="polite">
+                    <div class="spinner-border spinner-border-sm" role="status"><span class="visually-hidden">Đang tải…</span></div>
+                    <span>Đang sinh nhận xét…</span>
+                </div>
+            }
+            else if (_aiText is { } aiText)
+            {
+                <span>@aiText</span>
+            }
+            else if (_aiStatus == AiAdviceStatus.NotConfigured)
+            {
+                <span class="text-muted">Chưa cấu hình API key — dán key vào <code>Ai:ApiKey</code> trong appsettings.json.</span>
+            }
+            else if (_aiStatus == AiAdviceStatus.Failed)
+            {
+                <span class="text-danger">Không tạo được nhận xét, thử lại sau.</span>
+            }
+            else
+            {
+                <span class="text-muted">Bấm Nhận xét để AI đọc số liệu hiện tại và đưa ra đánh giá.</span>
+            }
+        </div>
+    </div>
+
     <table class="table table-striped w-auto">
         <thead>
             <tr>
@@ -124,9 +167,16 @@
             <tr><td>Gió (m/s)</td><td>@Fmt(latest.TocDoGio)</td><td>@Fmt(_api?.WindSpeed)</td><td>@Delta(latest.TocDoGio, _api?.WindSpeed)</td></tr>
             <tr><td>Hướng gió</td><td>@Compass(latest.HuongGio) (@latest.HuongGio°)</td><td>@(_api is null ? "" : $"{Compass(_api.WindDirection)} ({_api.WindDirection}°)")</td><td>@DeltaDeg(latest.HuongGio, _api?.WindDirection)</td></tr>
             <tr><td>Mưa (mm/h)</td><td>@Fmt(latest.Mua)</td><td>–</td><td>–</td></tr>
+            <tr><td>Ánh sáng (lx)</td><td>@Fmt(latest.AnhSang)</td><td>–</td><td>–</td></tr>
         </tbody>
     </table>
 
+    <div class="d-flex gap-2 align-items-center mb-2">
+        <button class="btn btn-sm @(_historyRange is null ? "btn-primary" : "btn-outline-secondary")" @onclick="() => SetRangeAsync(null)">Trực tiếp</button>
+        <button class="btn btn-sm @(_historyRange == HistoryRange.Hour1 ? "btn-primary" : "btn-outline-secondary")" @onclick="() => SetRangeAsync(HistoryRange.Hour1)">1 giờ</button>
+        <button class="btn btn-sm @(_historyRange == HistoryRange.Hours24 ? "btn-primary" : "btn-outline-secondary")" @onclick="() => SetRangeAsync(HistoryRange.Hours24)">24 giờ</button>
+        <button class="btn btn-sm @(_historyRange == HistoryRange.Days7 ? "btn-primary" : "btn-outline-secondary")" @onclick="() => SetRangeAsync(HistoryRange.Days7)">7 ngày</button>
+    </div>
     <div class="card"><div class="card-body"><canvas id="chartHistory" height="90"></canvas></div></div>
 }
 else
@@ -151,13 +201,14 @@ else
         if (firstRender)
         {
             await UseMyLocation();
+            await RefreshChartAsync();
         }
     }
 
     private void OnStoreChanged() => InvokeAsync(() =>
     {
         StateHasChanged();
-        UpdateChart();
+        if (_historyRange is null) _ = RefreshChartAsync();
     });
 
     private async Task UseMyLocation()
@@ -182,21 +233,64 @@ else
         _place = await OpenMeteo.GetPlaceNameAsync(c.lat, c.lon) ?? _place;
         _api = await OpenMeteo.GetCurrentAsync(c.lat, c.lon);
         StateHasChanged();
-        UpdateChart();
     }
 
-    private void UpdateChart()
+    private HistoryRange? _historyRange;
+
+    private async Task SetRangeAsync(HistoryRange? range)
     {
-        var hist = Store.History;
-        var labels = hist.Select(h => h.ReceivedAt.ToString("HH:mm:ss")).ToArray();
-        var temp = hist.Select(h => h.NhietDo).ToArray();
-        var hum = hist.Select(h => h.DoAm).ToArray();
-        var wind = hist.Select(h => h.TocDoGio).ToArray();
-        var rain = hist.Select(h => h.Mua).ToArray();
-        _ = JS.InvokeVoidAsync("updateHistoryChart", "chartHistory", labels, temp, hum, wind, rain);
+        _historyRange = range;
+        StateHasChanged();
+        await RefreshChartAsync();
     }
+
+    private async Task RefreshChartAsync()
+    {
+        IReadOnlyList<WeatherSample> hist = _historyRange is { } range
+            ? await History.GetRangeAsync(range, DateTime.Now)
+            : Store.History;
+        var labels = hist.Select(h => _historyRange switch
+        {
+            HistoryRange.Hours24 => h.ReceivedAt.ToString("HH:mm"),
+            HistoryRange.Days7 => h.ReceivedAt.ToString("dd/MM HH:mm"),
+            _ => h.ReceivedAt.ToString("HH:mm:ss"),
+        }).ToArray();
+        // double.NaN is not JSON-serializable by Blazor interop; null renders as a line gap.
+        _ = JS.InvokeVoidAsync("updateHistoryChart", "chartHistory", labels,
+            NanToNull(hist.Select(h => h.NhietDo)),
+            NanToNull(hist.Select(h => h.DoAm)),
+            NanToNull(hist.Select(h => h.TocDoGio)),
+            NanToNull(hist.Select(h => h.Mua)),
+            NanToNull(hist.Select(h => h.AnhSang)));
+    }
+
+    private static double?[] NanToNull(IEnumerable<double> values)
+        => values.Select(v => double.IsNaN(v) ? (double?)null : v).ToArray();
 
     private static string Fmt(double? v) => v is null or double.NaN ? "–" : v.Value.ToString("0.##");
+
+    private static WeatherAdviceResult AdviceFor(WeatherSample s)
+        => WeatherAdvice.Assess(s.NhietDo, s.AnhSang);
+
+    private string? _aiText;
+    private AiAdviceStatus _aiStatus;
+    private bool _aiLoading;
+
+    private async Task GenerateAiAdviceAsync()
+    {
+        if (Store.Latest is not { } latest) return;
+        var advice = AdviceFor(latest);
+        if (advice.Score is not { } score) return;
+        _aiLoading = true;
+        _aiText = null;
+        StateHasChanged();
+        var result = await Ai.GetAdviceAsync(latest, score, advice.Level);
+        _aiStatus = result.Status;
+        _aiText = result.Text;
+        _aiLoading = false;
+        StateHasChanged();
+    }
+
     private static string Delta(double local, double? api)
         => double.IsNaN(local) || api is null or double.NaN ? "–" : (local - api.Value).ToString("+#0.##;-#0.##");
     private static string DeltaDeg(int local, int? api)
