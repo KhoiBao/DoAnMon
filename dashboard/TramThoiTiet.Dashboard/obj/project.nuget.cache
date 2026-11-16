@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "Qybp0AoMrQY=",
+  "success": true,
+  "projectFilePath": "K:\\IoT\\DoAn\\DoAnMon\\dashboard\\TramThoiTiet.Dashboard\\TramThoiTiet.Dashboard.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\Brown\\.nuget\\packages\\mqttnet\\4.3.7.1207\\mqttnet.4.3.7.1207.nupkg.sha512"
+  ],
+  "logs": []
+}

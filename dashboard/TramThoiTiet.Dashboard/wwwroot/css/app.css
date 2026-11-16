@@ -1,0 +1,13 @@
+#blazor-error-ui {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    background: #f8d7da;
+    color: #58151c;
+    padding: 0.5rem 1rem;
+    z-index: 1000;
+}
+
+.table th, .table td {
+    vertical-align: middle;
+}
