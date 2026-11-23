@@ -35,13 +35,16 @@ public sealed class OpenMeteoService
         _factory = factory;
         _baseUrl = config.GetValue<string>("OpenMeteo:BaseUrl")
             ?? "https://api.open-meteo.com/v1/forecast";
-        _cacheMinutes = config.GetValue<int>("OpenMeteo:CacheMinutes", 10);
+        // Chu kỳ cache và tự động cập nhật dữ liệu Open-Meteo (mặc định 5 phút, tối thiểu 1 phút)
+        _cacheMinutes = Math.Max(1, config.GetValue<int>("OpenMeteo:CacheMinutes", 5));
     }
 
+    public TimeSpan RefreshInterval => TimeSpan.FromMinutes(_cacheMinutes);
+
     public async Task<ApiWeather?> GetCurrentAsync(double latitude, double longitude,
-        CancellationToken ct = default)
+        CancellationToken ct = default, bool forceRefresh = false)
     {
-        if (_cache is not null && _cacheKey == (latitude, longitude)
+        if (!forceRefresh && _cache is not null && _cacheKey == (latitude, longitude)
             && DateTime.UtcNow - _cacheAt < TimeSpan.FromMinutes(_cacheMinutes))
         {
             return _cache;

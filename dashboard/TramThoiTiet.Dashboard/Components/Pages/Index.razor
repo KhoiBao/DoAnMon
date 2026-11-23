@@ -188,6 +188,7 @@ else
     private (double lat, double lon)? _coords;
     private string? _place;
     private ApiWeather? _api;
+    private CancellationTokenSource? _apiPollCts;
 
     [Inject] public IConfiguration Config { get; set; } = default!;
 
@@ -202,6 +203,7 @@ else
         {
             await UseMyLocation();
             await RefreshChartAsync();
+            StartApiPolling();
         }
     }
 
@@ -227,11 +229,40 @@ else
         await RefreshApiAsync();
     }
 
-    private async Task RefreshApiAsync()
+    // Khởi chạy hẹn giờ tự động gọi lại Open-Meteo theo chu kỳ cấu hình (mặc định 5 phút)
+    private void StartApiPolling()
+    {
+        _apiPollCts?.Cancel();
+        _apiPollCts?.Dispose();
+        _apiPollCts = new CancellationTokenSource();
+        _ = PollApiLoopAsync(_apiPollCts.Token);
+    }
+
+    private async Task PollApiLoopAsync(CancellationToken ct)
+    {
+        using var timer = new PeriodicTimer(OpenMeteo.RefreshInterval);
+        try
+        {
+            while (await timer.WaitForNextTickAsync(ct))
+            {
+                await InvokeAsync(() => RefreshApiAsync(forceRefresh: true, ct: ct));
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Dừng vòng lặp khi hủy trang
+        }
+        catch (ObjectDisposedException)
+        {
+            // Tránh lỗi khi mạch Blazor đã đóng lúc timer vừa kích hoạt
+        }
+    }
+
+    private async Task RefreshApiAsync(bool forceRefresh = false, CancellationToken ct = default)
     {
         if (_coords is not { } c) return;
-        _place = await OpenMeteo.GetPlaceNameAsync(c.lat, c.lon) ?? _place;
-        _api = await OpenMeteo.GetCurrentAsync(c.lat, c.lon);
+        _place = await OpenMeteo.GetPlaceNameAsync(c.lat, c.lon, ct) ?? _place;
+        _api = await OpenMeteo.GetCurrentAsync(c.lat, c.lon, ct, forceRefresh);
         StateHasChanged();
     }
 
@@ -322,5 +353,7 @@ else
     public void Dispose()
     {
         Store.Changed -= OnStoreChanged;
+        _apiPollCts?.Cancel();
+        _apiPollCts?.Dispose();
     }
 }
