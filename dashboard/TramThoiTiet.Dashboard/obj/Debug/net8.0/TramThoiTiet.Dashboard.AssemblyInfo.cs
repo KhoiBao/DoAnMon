@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("TramThoiTiet.Dashboard")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+55e3072d4d6e369b0e7c3b5634baeb3ada68f913")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+6c550d04a34af9d1b572627e98f582100246ea3e")]
 [assembly: System.Reflection.AssemblyProductAttribute("TramThoiTiet.Dashboard")]
 [assembly: System.Reflection.AssemblyTitleAttribute("TramThoiTiet.Dashboard")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

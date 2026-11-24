@@ -261,16 +261,10 @@ else
     private async Task RefreshApiAsync(bool forceRefresh = false, CancellationToken ct = default)
     {
         if (_coords is not { } c) return;
-<<<<<<< HEAD
         // Run geocoding in parallel: if Nominatim is slow or blocked, the
         // Open-Meteo cards and the 5-day forecast still render.
-        var placeTask = OpenMeteo.GetPlaceNameAsync(c.lat, c.lon);
-        _api = await OpenMeteo.GetCurrentAsync(c.lat, c.lon);
-=======
-        _place = await OpenMeteo.GetPlaceNameAsync(c.lat, c.lon, ct) ?? _place;
+        var placeTask = OpenMeteo.GetPlaceNameAsync(c.lat, c.lon, ct);
         _api = await OpenMeteo.GetCurrentAsync(c.lat, c.lon, ct, forceRefresh);
->>>>>>> aa7a0beb3c14182ff29828571647da0fa388b5bc
-        StateHasChanged();
         _place = await placeTask ?? _place;
         StateHasChanged();
     }
