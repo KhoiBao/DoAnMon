@@ -22,6 +22,10 @@ pio run                                                    # build firmware
 dotnet run --project dashboard/TramThoiTiet.Dashboard      # dashboard
 ```
 
+## Website UI After Start:
+<img width="1736" height="2022" alt="image" src="https://github.com/user-attachments/assets/514ad95b-bf92-406d-a2dd-c6628ce029ed" />
+
+
 ## Repository layout
 
 | Path | Content |
