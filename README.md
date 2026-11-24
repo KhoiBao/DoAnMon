@@ -3,11 +3,16 @@
 Simulated mini weather station for a farm. The firmware runs on an ESP32
 inside the Wokwi simulator. It reads a DHT22 (temperature + humidity)
 and three potentiometers (wind speed, wind direction, rain) and
-publishes JSON telemetry over MQTT. A Blazor Server dashboard shows the
-telemetry, the user's location, today's weather and a 5-day forecast
-from the Open-Meteo weather API.
+publishes JSON telemetry over MQTT. A Blazor Server dashboard shows the telemetry, the user's location, today's weather and a 5-day forecast from the Open-Meteo weather API, applied lfm-3-1.7b - an LLM model made by LiqidAI, to read input data and advicing user.
 
-Full documentation: [docs/README.md](docs/README.md).
+Board Image:
+<img width="1383" height="655" alt="image" src="https://github.com/user-attachments/assets/b50358f1-9e39-4ac7-964c-2464a08f90e4" />
+
+Components used:
+-  DHT22
+-  ESP32devkit-V4
+-  LDR module
+-  3 potentiometers 
 
 ## Quick start
 
