@@ -1,6 +1,7 @@
 #include "NetworkService.h"
 #include <WiFi.h>
 #include <time.h>
+#include <stdio.h>
 #include "Config.h"
 
 #if __has_include("secrets.h")
@@ -24,10 +25,15 @@ void NetworkService::begin() {
 void NetworkService::ensureWiFi() {
   if (WiFi.status() == WL_CONNECTED) return;
   WiFi.mode(WIFI_STA);
-  WiFi.begin(WIFI_SSID, WIFI_PASS);
-  for (int i = 0; i < 30 && WiFi.status() != WL_CONNECTED; i++) {
+  // Channel 6 is the Wokwi-GUEST channel. Passing it skips the WiFi scan,
+  // which saves about 4 seconds and keeps the boot cycle inside the timeout.
+  WiFi.begin(WIFI_SSID, WIFI_PASS, 6);
+  Serial.print(F("WiFi: dang ket noi "));
+  Serial.println(WIFI_SSID);
+  for (int i = 0; i < 100 && WiFi.status() != WL_CONNECTED; i++) {
     delay(200);
   }
+  Serial.println(WiFi.status() == WL_CONNECTED ? F("WiFi: da ket noi") : F("WiFi: KHONG ket noi duoc"));
   configTime(TZ_OFFSET_SEC, 0, NTP_SERVER);
 }
 
@@ -36,7 +42,13 @@ void NetworkService::ensureMqtt() {
   unsigned long now = millis();
   if (now < _nextMqttRetry) return;
 
-  if (_mqtt.connect(MQTT_CLIENT_ID, MQTT_USER, MQTT_PASS)) {
+  // Use a unique client id: the public demo broker disconnects clients that
+  // reuse the same id (for example a second simulator window).
+  static char clientId[48];
+  snprintf(clientId, sizeof(clientId), "%s-%08X",
+           MQTT_CLIENT_ID, (uint32_t)ESP.getEfuseMac());
+
+  if (_mqtt.connect(clientId, MQTT_USER, MQTT_PASS)) {
     _mqttBackoff = MQTT_RECONNECT_MIN_MS;
   } else {
     _mqttBackoff = min(_mqttBackoff * 2, MQTT_RECONNECT_MAX_MS);

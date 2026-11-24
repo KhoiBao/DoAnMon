@@ -52,6 +52,9 @@ as floating or disconnected and the channel is marked failed.
   `SLEEP_INTERVAL_S` (60 s). Waking from deep sleep reboots the ESP32,
   so the offline telemetry buffer does not survive sleep.
 
+The repository default is `0` so the Wokwi/dashboard demo updates every
+5 seconds. Set it to `1` for the battery-mode demonstration.
+
 ## MQTT payload
 
 The firmware publishes to topic `v1/devices/me/telemetry`. This topic is
@@ -67,7 +70,7 @@ ThingsBoard. The Access Token is the MQTT username.
   "r": 0,
   "lux": 420.5,
   "ok": true,
-  "ts": 1731760400
+  "ts": 1794846520
 }
 ```
 

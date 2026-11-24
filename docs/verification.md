@@ -137,16 +137,20 @@ expected keys).
 
 Method: unit tests with xUnit (prompt builder, response parser, cache
 and throttling against a fake HTTP handler); end-to-end test in the
-browser with the running dashboard. The real Gemini call needs the
-user's API key, so the executed evidence covers everything except a
-successful real API answer.
+browser with the running dashboard, using the team's OpenRouter key
+and the `liquid/lfm-3-1.7b:free` model. Note: the Liquid free endpoint
+mandates reasoning, so the request sets `max_tokens` 2500 (a real
+answer uses ~1300 completion tokens in about 8 s; with the original
+200 the reasoning consumed the whole budget and the content came back
+empty — found and fixed during this verification).
 
 | Check | Expected | Result |
 |-------|----------|--------|
-| Unit tests, AI service | 9/9 pass (prompt contents, parser, no-key, NaN, error throttle, cache hit, condition change) | PASS |
+| Unit tests, AI service | 11/11 pass (prompt contents + grounding limit, parser, request targets OpenRouter with Bearer key and max_tokens 2500, no-key, NaN, error throttle, cache hit, condition change) | PASS |
 | Panel renders | "Nhận xét AI" card with the "Nhận xét" button below the advice strip | PASS |
-| Click without key | "Chưa cấu hình API key" shown, no HTTP call | PASS |
-| Click with invalid key | "Không tạo được nhận xét, thử lại sau." after the real API rejects it | PASS |
-| Browser console | no errors during both clicks | PASS |
+| Click without key | "Chưa cấu hình API key" shown, no HTTP call | PASS (unit-covered; earlier E2E run) |
+| Real API answer | AI sentence replaces the placeholder after the spinner | PASS — answer grounded in the given readings, no light value, no invented data |
+| Rate-limited call (429) | Failed state shows "Không tạo được nhận xét, thử lại sau.", page unaffected | PASS (hit the free-tier per-minute limit during testing) |
+| Cache | three clicks with the same condition band produce only two HTTP POSTs (the third served from cache) | PASS (server log count) |
+| Browser console | no errors during the clicks | PASS |
 | Weighted advice untouched | badge and comment above the card unchanged | PASS |
-| Real API answer with a valid key | AI sentence replaces the failed state | (pending — needs the user's API key) |

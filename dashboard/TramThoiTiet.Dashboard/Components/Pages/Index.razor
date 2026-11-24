@@ -21,7 +21,7 @@
 </div>
 
 <div class="d-flex gap-2 align-items-center mb-4">
-    <span class="fs-5">@(_place is null ? "Đang xác định vị trí…" : $"Vị trí của bạn: {_place}")</span>
+    <span class="fs-5">@PlaceLabel()</span>
     <span class="text-muted small">@(_coords is null ? "" : $"({_coords.Value.lat:0.####}, {_coords.Value.lon:0.####})")</span>
     <button class="btn btn-outline-primary btn-sm" @onclick="UseMyLocation">Lấy vị trí hiện tại</button>
     @if (_api is not null)
@@ -181,7 +181,7 @@
 }
 else
 {
-    <p>Chưa nhận dữ liệu MQTT.</p>
+    <p class="text-muted">Chưa nhận dữ liệu MQTT. Hãy bật mô phỏng Wokwi và đợi chu kỳ gửi đầu tiên (5 giây ở chế độ demo).</p>
 }
 
 @code {
@@ -261,8 +261,17 @@ else
     private async Task RefreshApiAsync(bool forceRefresh = false, CancellationToken ct = default)
     {
         if (_coords is not { } c) return;
+<<<<<<< HEAD
+        // Run geocoding in parallel: if Nominatim is slow or blocked, the
+        // Open-Meteo cards and the 5-day forecast still render.
+        var placeTask = OpenMeteo.GetPlaceNameAsync(c.lat, c.lon);
+        _api = await OpenMeteo.GetCurrentAsync(c.lat, c.lon);
+=======
         _place = await OpenMeteo.GetPlaceNameAsync(c.lat, c.lon, ct) ?? _place;
         _api = await OpenMeteo.GetCurrentAsync(c.lat, c.lon, ct, forceRefresh);
+>>>>>>> aa7a0beb3c14182ff29828571647da0fa388b5bc
+        StateHasChanged();
+        _place = await placeTask ?? _place;
         StateHasChanged();
     }
 
@@ -299,6 +308,13 @@ else
         => values.Select(v => double.IsNaN(v) ? (double?)null : v).ToArray();
 
     private static string Fmt(double? v) => v is null or double.NaN ? "–" : v.Value.ToString("0.##");
+
+    private string PlaceLabel()
+    {
+        if (_place is { Length: > 0 }) return $"Vị trí của bạn: {_place}";
+        if (_coords is not null) return "Vị trí hiện tại";
+        return "Đang xác định vị trí…";
+    }
 
     private static WeatherAdviceResult AdviceFor(WeatherSample s)
         => WeatherAdvice.Assess(s.NhietDo, s.AnhSang);

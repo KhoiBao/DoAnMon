@@ -10,8 +10,11 @@ builder.Services.AddRazorComponents()
 builder.Services.AddSingleton<WeatherStore>();
 builder.Services.AddSingleton<HistoryService>();
 builder.Services.AddHostedService<MqttReceiverService>();
-builder.Services.AddHttpClient<OpenMeteoService>();
-builder.Services.AddHttpClient<AiAdviceService>(c => c.Timeout = TimeSpan.FromSeconds(8));
+builder.Services.AddHttpClient<OpenMeteoService>(c => c.Timeout = TimeSpan.FromSeconds(15));
+// Reverse geocoding is optional: do not let a slow Nominatim request block
+// the weather cards. The current weather/forecast use Open-Meteo directly.
+builder.Services.AddHttpClient("nominatim", c => c.Timeout = TimeSpan.FromSeconds(5));
+builder.Services.AddHttpClient<AiAdviceService>(c => c.Timeout = TimeSpan.FromSeconds(15));
 
 var dbPath = Path.Combine(builder.Environment.ContentRootPath, "tramthoitiet.db");
 builder.Services.AddDbContextFactory<WeatherDbContext>(o => o.UseSqlite($"Data Source={dbPath}"));

@@ -48,5 +48,6 @@
 // 0 = demo mode: continuous sampling every SAMPLE_INTERVAL_MS
 // 1 = battery mode: one read/publish cycle, then deep sleep for SLEEP_INTERVAL_S (wake = reboot)
 // Note: RAM is cleared by deep sleep, so the telemetry buffer does not survive sleep.
-#define DEEP_SLEEP_ENABLE 1
+// Keep 0 for the Wokwi/dashboard demo; set 1 for the battery-mode demonstration.
+#define DEEP_SLEEP_ENABLE 0
 #define SLEEP_INTERVAL_S  60

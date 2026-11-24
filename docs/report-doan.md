@@ -177,9 +177,16 @@ Kiến trúc lai:
   tất định, kiểm thử đơn vị được.
 - Dịch vụ `AiAdviceService` gửi số liệu hiện tại (nhiệt độ, độ ẩm,
   gió, hướng gió, mưa, ánh sáng, trạng thái cảm biến) cùng điểm số và
-  nhãn tới API Gemini (model cấu hình qua `Ai:Model`, mặc định
-  `gemini-2.5-flash`), yêu cầu viết 1–2 câu tiếng Việt: một câu mô tả
-  dải nhiệt độ và một khuyến nghị hành động.
+  nhãn tới API OpenRouter (định dạng OpenAI chat completions, xác thực
+  Bearer; model cấu hình qua `Ai:Model`, mặc định model miễn phí
+  `liquid/lfm-3-1.7b:free`), yêu cầu viết 1–2 câu tiếng Việt: một câu
+  mô tả dải nhiệt độ và một khuyến nghị hành động. Prompt ràng buộc
+  model CHỈ đánh giá dựa trên các số liệu đã nêu — không tự bịa thêm
+  số liệu, không tra cứu thông tin bên ngoài.
+- Model Liquid là model reasoning (bắt buộc có phần suy luận): token
+  suy luận tính vào budget trả lời, vì vậy request đặt `max_tokens`
+  2500 và timeout HTTP 15 giây; một câu trả lời thật dùng ~1300 token
+  và hoàn tất trong khoảng 8 giây (đo thực tế 2026-11-16).
 - API key đặt trong `appsettings.json` (`Ai:ApiKey`), không nhúng vào
   mã nguồn (bám sát mục an toàn SEC-4).
 

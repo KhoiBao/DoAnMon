@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using MQTTnet;
@@ -30,6 +31,48 @@ public sealed class MqttReceiverService : BackgroundService
         _device = config.GetValue<string>("Mqtt:Device") ?? "tram-mini-01";
     }
 
+    // Public broker: any device can publish. JSON null (ArduinoJson serializes
+    // NaN as null) or missing fields must yield NaN instead of throwing.
+    public static bool TryParse(string json, string device, out WeatherSample sample)
+    {
+        sample = new WeatherSample(DateTime.Now, device, double.NaN, double.NaN,
+            double.NaN, 0, double.NaN, double.NaN, false);
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+            // ts is Unix epoch seconds from the device (NTP-synced); 0/absent means
+            // the device clock was not synced, so fall back to arrival time.
+            var ts = GetNumber(root, "ts");
+            var sampleAt = ts is > 1_600_000_000
+                ? DateTimeOffset.FromUnixTimeSeconds((long)ts.Value).LocalDateTime
+                : DateTime.Now;
+            sample = new WeatherSample(
+                ReceivedAt: sampleAt,
+                Device: device,
+                NhietDo: GetNumber(root, "t") ?? double.NaN,
+                DoAm: GetNumber(root, "h") ?? double.NaN,
+                TocDoGio: GetNumber(root, "ws") ?? double.NaN,
+                HuongGio: (int)(GetNumber(root, "wd") ?? 0),
+                Mua: GetNumber(root, "r") ?? double.NaN,
+                AnhSang: GetNumber(root, "lux") ?? double.NaN,
+                SensorOk: root.TryGetProperty("ok", out var ok) &&
+                    (ok.ValueKind == JsonValueKind.True ||
+                     (ok.ValueKind == JsonValueKind.Number && ok.GetDouble() != 0)));
+            return true;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
+
+    private static double? GetNumber(JsonElement root, string name)
+    {
+        return root.TryGetProperty(name, out var el) && el.ValueKind == JsonValueKind.Number
+            ? el.GetDouble() : null;
+    }
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         var factory = new MqttFactory();
@@ -40,46 +83,23 @@ public sealed class MqttReceiverService : BackgroundService
 
         client.ApplicationMessageReceivedAsync += async e =>
         {
-            WeatherSample sample;
             try
             {
                 var payload = e.ApplicationMessage.PayloadSegment;
                 if (payload.Array is null || payload.Count == 0) return;
-                using var doc = JsonDocument.Parse(payload);
-                var root = doc.RootElement;
-                // ts is Unix epoch seconds from the device (NTP-synced); 0/absent means
-                // the device clock was not synced, so fall back to arrival time.
-                var ts = root.TryGetProperty("ts", out var tsEl) && tsEl.ValueKind == JsonValueKind.Number
-                    ? tsEl.GetInt64() : 0;
-                var sampleAt = ts > 1_600_000_000L
-                    ? DateTimeOffset.FromUnixTimeSeconds(ts).LocalDateTime
-                    : DateTime.Now;
-                sample = new WeatherSample(
-                    ReceivedAt: sampleAt,
-                    Device: _device,
-                    NhietDo: root.TryGetProperty("t", out var t) ? t.GetDouble() : double.NaN,
-                    DoAm: root.TryGetProperty("h", out var h) ? h.GetDouble() : double.NaN,
-                    TocDoGio: root.TryGetProperty("ws", out var ws) ? ws.GetDouble() : double.NaN,
-                    HuongGio: root.TryGetProperty("wd", out var wd) ? wd.GetInt32() : 0,
-                    Mua: root.TryGetProperty("r", out var r) ? r.GetDouble() : double.NaN,
-                    AnhSang: root.TryGetProperty("lux", out var lux) ? lux.GetDouble() : double.NaN,
-                    SensorOk: root.TryGetProperty("ok", out var ok) && ok.GetBoolean());
-            }
-            catch (JsonException ex)
-            {
-                _logger.LogWarning(ex, "Bad telemetry payload");
-                return;
-            }
-            _store.Add(sample);
-            try
-            {
+                if (!TryParse(Encoding.UTF8.GetString(payload.Array, payload.Offset, payload.Count), _device, out var sample))
+                {
+                    _logger.LogWarning("Bad telemetry payload");
+                    return;
+                }
+                _store.Add(sample);
                 await using var db = await _dbFactory.CreateDbContextAsync();
                 db.WeatherRecords.Add(WeatherRecord.From(sample));
                 await db.SaveChangesAsync();
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Khong luu du lieu telemetry vao SQLite");
+                _logger.LogWarning(ex, "Khong xu duoc du lieu telemetry");
             }
         };
 

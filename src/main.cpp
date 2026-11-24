@@ -26,6 +26,14 @@ void setup() {
   sensors.begin();
 
   network.begin();
+  // The Wokwi gateway can need a few seconds. Wait for MQTT here so the
+  // first sample is published instead of being buffered/lost in a deep-sleep
+  // build (the buffer does not survive deep sleep).
+  const unsigned long startedMs = millis();
+  while (!network.mqttConnected() && millis() - startedMs < 15000UL) {
+    network.loop();
+    delay(200);
+  }
 }
 
 void loop() {

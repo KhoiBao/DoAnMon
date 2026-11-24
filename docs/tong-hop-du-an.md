@@ -20,8 +20,8 @@ Chi tiết đầy đủ nằm ở: `docs/firmware.md`, `docs/dashboard.md`, `doc
 | Dashboard | Blazor Server, .NET 8, MQTTnet 4.3.7.1207 |
 | CSDL | SQLite qua EF Core 8 (`Microsoft.EntityFrameworkCore.Sqlite 8.0.11`), file `tramthoitiet.db` |
 | Dự báo thời tiết | Open-Meteo API (hiện tại + 5 ngày), cache 10 phút |
-| Nhận xét AI | Gemini API (`gemini-2.5-flash`), chỉ chạy khi bấm nút, có fallback template |
-| Unit test | xUnit — 23/23 PASS (9 WeatherAdvice + 5 HistoryService + 9 AiAdviceService) |
+| Nhận xét AI | OpenRouter API (model miễn phí `liquid/lfm-3-1.7b:free`), chỉ chạy khi bấm nút, có fallback template |
+| Unit test | xUnit — 25/25 PASS (9 WeatherAdvice + 5 HistoryService + 11 AiAdviceService) |
 | Kiểm chứng E2E | Dashboard 10 PASS (§5), lưu trữ/lịch sử 14 PASS (§7), AI 6 PASS (§8) |
 
 ## 2. Mục tiêu và phạm vi
@@ -45,7 +45,7 @@ Chi tiết đầy đủ nằm ở: `docs/firmware.md`, `docs/dashboard.md`, `doc
    SQLite tramthoitiet.db                Index.razor (Blazor Server render)
         |                                     ^  ^
         v                                     |  |
-   HistoryService (raw / bucket mean) --------+  +-- AiAdviceService --> Gemini API
+   HistoryService (raw / bucket mean) --------+  +-- AiAdviceService --> OpenRouter API
                                                  +-- OpenMeteoService --> Open-Meteo + Nominatim
 ```
 
@@ -63,7 +63,7 @@ Chi tiết đầy đủ nằm ở: `docs/firmware.md`, `docs/dashboard.md`, `doc
 7. **Dashboard nhận** (MqttReceiverService, QoS 0): parse JSON → `WeatherSample` (trường thiếu = NaN; `ts` hợp lệ (> 1,6 × 10⁹) → thời gian đo từ thiết bị, không hợp lệ → giờ nhận).
 8. **Lưu hai nơi**: thêm vào `WeatherStore` (ring 200, kích sự kiện UI render lại) và **INSERT vào SQLite** (`WeatherRecords`).
 9. **Hiển thị**: tile số liệu, bảng so sánh đo thực tế vs Open-Meteo (lệch delta), dự báo 5 ngày, biểu đồ lịch sử theo dải đã chọn, badge mức "Thuận lợi / Bình thường / Cần lưu ý".
-10. **Nhận xét AI**: chỉ khi người dùng bấm nút **"Nhận xét"** — dashboard gửi prompt (số liệu hiện tại + điểm trọng số) tới Gemini, hiện spinner khi đang sinh, thay kết quả vào card; lỗi hoặc thiếu key thì UI giữ nhận xét template.
+10. **Nhận xét AI**: chỉ khi người dùng bấm nút **"Nhận xét"** — dashboard gửi prompt (số liệu hiện tại + điểm trọng số) tới OpenRouter, hiện spinner khi đang sinh, thay kết quả vào card; lỗi hoặc thiếu key thì UI giữ nhận xét template.
 
 ## 4. Phần cứng và đấu nối (từ `diagram.json` + `include/Config.h`)
 
@@ -108,7 +108,7 @@ Wokwi parts: `board-esp32-devkit-c-v4`, `wokwi-dht22`, 3 × `wokwi-potentiometer
 ### 5.3 Payload JSON (đã làm tròn 2 chữ số, buffer tối đa 128 byte)
 
 ```json
-{"t":29.5,"h":62,"ws":3.4,"wd":120,"r":0,"lux":450,"ok":true,"ts":1763200000}
+{"t":29.5,"h":62,"ws":3.4,"wd":120,"r":0,"lux":450,"ok":true,"ts":1794846520}
 ```
 
 | Key | Ý nghĩa | Đơn vị |
@@ -141,7 +141,7 @@ DHT sensor library + Adafruit Unified Sensor, PubSubClient ^2.8, ArduinoJson ^7.
 | `MqttReceiverService` | BackgroundService | Kết nối + subscribe MQTT (QoS 0), parse payload, push store, **INSERT SQLite** mỗi mẫu; mất nối thì thử lại mỗi 5 s; lỗi JSON chỉ log cảnh báo, app chạy tiếp |
 | `HistoryService` | Singleton | Truy vấn SQLite theo dải; gộp bucket trung bình (bỏ NULL/NaN) |
 | `WeatherAdvice` | Static | Mô hình trọng số (§7) |
-| `AiAdviceService` | Typed HttpClient, timeout 8 s | Nhận xét AI theo yêu cầu (§8) |
+| `AiAdviceService` | Typed HttpClient, timeout 15 s | Nhận xét AI theo yêu cầu (§8) |
 | `OpenMeteoService` | Typed HttpClient | Open-Meteo hiện tại + 5 ngày (cache 10 phút/vị trí, đổi km/h → m/s chia 3,6) + Nominatim reverse geocode (zoom 18, tiếng Việt, header UserAgent riêng) |
 | `WeatherDbContext` + `WeatherRecord` | EF Core | Bảng `WeatherRecords`, `EnsureCreated` khi khởi động |
 
@@ -194,20 +194,22 @@ Dải phân loại dùng cho comment và cache AI:
 
 Nhận xét template = dải nhiệt độ kèm giá trị + **một** khuyến nghị ưu tiên theo thứ tự: t ≥ 32 (hạn chế trưa) → t < 20 (giữ ấm) → lux < 50 (trời tối) → lux ≥ 600 (che chắn) → lux < 200 (âm u) → còn lại (dễ chịu). **Không** nêu chi tiết số lux trong comment (yêu cầu của nhóm); ánh sáng vẫn hiển thị ở tile/bảng/biểu đồ. Dữ liệu thiếu (NaN) → điểm null, mức "Không đủ dữ liệu".
 
-## 8. Nhận xét AI (Gemini, kiến trúc hybrid)
+## 8. Nhận xét AI (OpenRouter, kiến trúc hybrid)
 
 Nguyên tắc: **mô hình trọng số vẫn là xương sống xác định** (chấm điểm, mức, badge); LLM chỉ viết câu nhận xét; mọi lỗi → fallback template, dashboard không bao giờ chết vì AI.
 
 | Khía cạnh | Chi tiết |
 |---|---|
 | Cách kích hoạt | **Chỉ khi bấm nút "Nhận xét"** trên card — không tự gọi theo mỗi mẫu |
-| Endpoint | `POST https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent`, header `x-goog-api-key` |
-| Model mặc định | `gemini-2.5-flash`, cấu hình được qua `Ai:Model` |
-| Tham số sinh | temperature 0,7; maxOutputTokens 200 |
+| Endpoint | `POST https://openrouter.ai/api/v1/chat/completions` (định dạng OpenAI), header `Authorization: Bearer <key>` |
+| Model mặc định | `liquid/lfm-3-1.7b:free` (miễn phí trên OpenRouter), cấu hình được qua `Ai:Model` |
+| Tham số sinh | temperature 0,7; `max_tokens` 2500 |
+| Đặc thù model | Liquid là model **reasoning bắt buộc** — token suy luận tính vào budget trả lời (câu thật dùng ~1300 token, ~8 giây); đặt 2500 để phần trả lời không bị cắt, timeout HTTP 15 s |
+| Ràng buộc nội dung | Prompt yêu cầu **CHỈ đánh giá dựa trên các số liệu đã nêu** — không bịa số liệu, không tra cứu thông tin ngoài, không dự báo/so sánh địa điểm khác |
 | Prompt | số liệu hiện tại (t, h, ws, wd, r, lux, trạng thái cảm biến) + điểm trọng số/mức; yêu cầu 1–2 câu tiếng Việt, câu mô tả kèm dải nhiệt độ, một khuyến nghị, không markdown/ngoặc kép, không nhắc giá trị ánh sáng |
 | Cache thành công | key `dải nhiệt độ | dải ánh sáng | mức`, TTL **5 phút** (không tốn quota khi điều kiện không đổi) |
-| Throttle lỗi | sau 1 lần lỗi, không gọi lại trong **30 s** với cùng điều kiện |
-| Timeout HTTP | 8 s |
+| Throttle lỗi | sau 1 lần lỗi (kể cả 429 rate-limit của free tier), không gọi lại trong **30 s** với cùng điều kiện |
+| Timeout HTTP | 15 s |
 
 Trạng thái trả về và hiển thị trên UI:
 
@@ -221,12 +223,12 @@ Trạng thái trả về và hiển thị trên UI:
 
 ```json
 "Ai": {
-  "ApiKey": "PASTE_KEY_VAO_DAY",
-  "Model": "gemini-2.5-flash"
+  "ApiKey": "sk-or-v1-... (key OpenRouter của thành viên)",
+  "Model": "liquid/lfm-3-1.7b:free"
 }
 ```
 
-Lấy key miễn phí tại Google AI Studio (aistudio.google.com/apikey). `appsettings.json` hot-reload — đổi key **không cần khởi động lại**, bấm lại "Nhận xét" là có hiệu lực.
+Lấy key miễn phí tại openrouter.ai (mục Keys trong trang cá nhân). `appsettings.json` hot-reload — đổi key **không cần khởi động lại**, bấm lại "Nhận xét" là có hiệu lực. Lưu ý free tier của OpenRouter có giới hạn tần suất (429 khi gọi dồn) — cache 5 phút và throttle 30 s của service giúp không chạm giới hạn trong dùng thật.
 
 ## 9. Open-Meteo và định vị (phần so sánh của dashboard)
 
@@ -269,7 +271,7 @@ cd dashboard/TramThoiTiet.Dashboard.Tests
 dotnet test
 ```
 
-Kết quả hiện tại: **23/23 PASS**. Lưu ý: **dừng `dotnet run` trước** khi `dotnet test` — server đang chạy khóa file `.exe`, build test sẽ lỗi MSB3026.
+Kết quả hiện tại: **25/25 PASS**. Lưu ý: **dừng `dotnet run` trước** khi `dotnet test` — server đang chạy khóa file `.exe`, build test sẽ lỗi MSB3026.
 
 ### 10.5 Phát telemetry kiểm thử thủ công (tùy chọn, dùng lại khi kiểm chứng)
 
@@ -282,10 +284,10 @@ Nguồn chi tiết: `docs/verification.md`. Chỉ ghi số test đã chạy — 
 | Nhóm | Số lượng | Kết quả |
 |---|---|---|
 | Firmware build (`pio run`) | compile + link + bin | SUCCESS (302 KB) |
-| Unit test dashboard (xUnit) | 23 test | 23/23 PASS |
+| Unit test dashboard (xUnit) | 25 test | 25/25 PASS |
 | Dashboard E2E (§5) | 11 mục | 10 PASS, 1 pending (geolocation cần trình duyệt user) |
 | Lưu trữ / lịch sử / advice (§7) | 14 mục | 14/14 PASS; probe DB 12 dòng (9 lux, 3 NULL do thiết bị lạ) |
-| Nhận xét AI (§8) | 7 mục | 6 PASS, 1 pending (chờ API key thật của thành viên) |
+| Nhận xét AI (§8) | 8 mục | 8/8 PASS (gồm câu AI thật từ `liquid/lfm-3-1.7b:free` qua key OpenRouter của nhóm) |
 | Bảo mật (§6) | 7 mục | SEC-2/3/4 PASS; SEC-1/5 FAIL (giới hạn đã ghi nhận); SEC-6/7 không thực hiện (giới hạn) |
 | Simulator Wokwi (§4) | 3 mục | pending — chạy trên máy thành viên có Wokwi extension |
 
@@ -297,7 +299,7 @@ Ghi chú: §1 trong verification.md là hồ sơ cũ của chip BME280 tự vi�
 2. Dashboard không có đăng nhập, chạy loopback HTTP (SEC-6/7).
 3. Biến trở mô phỏng cảm biến thật; lux xấp xỉ tuyến tính 0–1000.
 4. Deep sleep xóa RAM → buffer không sống qua giấc ngủ (chế độ pin).
-5. Đường dẫn thành công AI thật (key hợp lệ) chưa có bằng chứng — chờ key của thành viên.
+5. Free tier OpenRouter giới hạn tần suất gọi (429 khi gọi dồn) — cache 5 phút + throttle 30 s giữ dùng thật dưới giới hạn; model Liquid bắt buộc reasoning nên mỗi call dùng ~1300 token hoàn tất (~8 s).
 6. Wokwi simulator E2E (§4) chưa chạy trên máy này.
 
 ## 12. Gợi ý cấu trúc slide (map sang nguồn tài liệu)

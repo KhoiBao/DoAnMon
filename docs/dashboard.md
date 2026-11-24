@@ -20,7 +20,7 @@ The dashboard project is at `dashboard/TramThoiTiet.Dashboard/`.
 | `Services/MqttReceiverService.cs` | Background MQTT client with reconnect loop; writes each valid sample to SQLite |
 | `Services/HistoryService.cs` | Reads SQLite and buckets rows for each time range |
 | `Services/WeatherAdvice.cs` | Weighted temperature + light verdict |
-| `Services/AiAdviceService.cs` | On-demand AI commentary via the Gemini API |
+| `Services/AiAdviceService.cs` | On-demand AI commentary via the OpenRouter API |
 | `Services/OpenMeteoService.cs` | API client with a 10-minute cache |
 | `Data/WeatherRecord.cs` | EF entity; maps NaN to NULL (SQLite REAL cannot store NaN) |
 | `Data/WeatherDbContext.cs` | DbContext with the `WeatherRecords` set |
@@ -97,10 +97,16 @@ button — nothing calls the API on its own.
 
 `AiAdviceService` sends the current readings (temperature, humidity,
 wind, direction, rain, light, sensor flag) plus the weighted score and
-level to the Gemini API (`Ai:Model`, default `gemini-2.5-flash`) and
-asks for one 1–2 sentence Vietnamese comment: a temperature band plus
-one actionable recommendation. The API key comes from `Ai:ApiKey` in
-`appsettings.json` and is never hard-coded.
+level to the OpenRouter chat completions API (`Ai:Model`, default
+`liquid/lfm-3-1.7b:free`) with a Bearer key and asks for one 1–2
+sentence Vietnamese comment: a temperature band plus one actionable
+recommendation. The prompt restricts the model to the provided
+measurements only — no outside information, no invented values. The
+API key comes from `Ai:ApiKey` in `appsettings.json` and is never
+hard-coded. The Liquid model is a reasoning model: reasoning is
+mandatory on this endpoint, so the request sets `max_tokens` 2500 and
+the HTTP timeout is 15 s — a real answer uses ~1300 completion tokens
+and lands in about 8 s.
 
 | Result | Meaning | Panel shows |
 |--------|---------|-------------|

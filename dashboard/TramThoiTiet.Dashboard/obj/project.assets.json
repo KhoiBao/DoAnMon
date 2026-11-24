@@ -1082,12 +1082,26 @@
     ]
   },
   "packageFolders": {
+<<<<<<< HEAD
+    "C:\\Users\\Brown\\.nuget\\packages\\": {}
+=======
     "C:\\Users\\TWSN\\.nuget\\packages\\": {},
     "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
+>>>>>>> aa7a0beb3c14182ff29828571647da0fa388b5bc
   },
   "project": {
     "version": "1.0.0",
     "restore": {
+<<<<<<< HEAD
+      "projectUniqueName": "K:\\IoT\\DoAn\\DoAnMon\\dashboard\\TramThoiTiet.Dashboard\\TramThoiTiet.Dashboard.csproj",
+      "projectName": "TramThoiTiet.Dashboard",
+      "projectPath": "K:\\IoT\\DoAn\\DoAnMon\\dashboard\\TramThoiTiet.Dashboard\\TramThoiTiet.Dashboard.csproj",
+      "packagesPath": "C:\\Users\\Brown\\.nuget\\packages\\",
+      "outputPath": "K:\\IoT\\DoAn\\DoAnMon\\dashboard\\TramThoiTiet.Dashboard\\obj\\",
+      "projectStyle": "PackageReference",
+      "configFilePaths": [
+        "C:\\Users\\Brown\\AppData\\Roaming\\NuGet\\NuGet.Config"
+=======
       "projectUniqueName": "D:\\DiHoc\\IoT\\DoAnMon\\dashboard\\TramThoiTiet.Dashboard\\TramThoiTiet.Dashboard.csproj",
       "projectName": "TramThoiTiet.Dashboard",
       "projectPath": "D:\\DiHoc\\IoT\\DoAnMon\\dashboard\\TramThoiTiet.Dashboard\\TramThoiTiet.Dashboard.csproj",
@@ -1101,12 +1115,16 @@
         "C:\\Users\\TWSN\\AppData\\Roaming\\NuGet\\NuGet.Config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+>>>>>>> aa7a0beb3c14182ff29828571647da0fa388b5bc
       ],
       "originalTargetFrameworks": [
         "net8.0"
       ],
       "sources": {
+<<<<<<< HEAD
+=======
         "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+>>>>>>> aa7a0beb3c14182ff29828571647da0fa388b5bc
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
@@ -1124,8 +1142,12 @@
         "enableAudit": "true",
         "auditLevel": "low",
         "auditMode": "direct"
+<<<<<<< HEAD
+      }
+=======
       },
       "SdkAnalysisLevel": "9.0.300"
+>>>>>>> aa7a0beb3c14182ff29828571647da0fa388b5bc
     },
     "frameworks": {
       "net8.0": {
@@ -1159,7 +1181,11 @@
             "privateAssets": "all"
           }
         },
+<<<<<<< HEAD
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.428/PortableRuntimeIdentifierGraph.json"
+=======
         "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.317/PortableRuntimeIdentifierGraph.json"
+>>>>>>> aa7a0beb3c14182ff29828571647da0fa388b5bc
       }
     }
   }

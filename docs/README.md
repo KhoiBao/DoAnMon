@@ -11,7 +11,8 @@ custom chip is needed.
 
 The dashboard stores every sample in SQLite and shows history charts
 for four time ranges, plus a weighted advice line based on temperature
-and light. An optional AI comment (Gemini API, generated only when the
+and light. An optional AI comment (OpenRouter API with a free Liquid
+model, generated only when the
 user clicks "Nhận xét") phrases the same readings in natural language;
 without an API key the dashboard works as before.
 
@@ -58,3 +59,18 @@ both values and the difference.
 3. Start the simulator with the Wokwi extension.
 4. Start the dashboard: `dotnet run --project dashboard/TramThoiTiet.Dashboard`.
 5. Open `http://localhost:5000` (or the URL that the console shows).
+
+## If the dashboard shows only the forecast
+
+The green MQTT badge shows the **dashboard's** connection to the broker. It
+does not prove that the ESP32 is online. The station cards, advice, AI card,
+table and chart are rendered only after the first telemetry message arrives.
+
+1. Start the Wokwi simulator and open the serial monitor (115200 baud).
+2. Look for `WiFi: da ket noi` and then `Gui: {...}` every 5 seconds.
+3. `WiFi: KHONG ket noi duoc` means the simulator has no network. Restart it
+   and check that the `Wokwi-GUEST` network is available.
+4. `Luu buffer: {...}` means WiFi is up but the MQTT broker connection failed.
+   The dashboard and the ESP32 must use the same broker and topic.
+5. With `DEEP_SLEEP_ENABLE 0` (demo default) the firmware publishes every
+   5 seconds. With `1` it publishes once and sleeps for 60 seconds.
